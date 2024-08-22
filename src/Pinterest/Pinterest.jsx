@@ -1,109 +1,129 @@
-import React from "react";
-import { FaBell } from "react-icons/fa";
-import { BiSolidMessageRoundedDots } from "react-icons/bi";
+import React, { useEffect, useState } from "react";
 import { MdOutlineFileUpload } from "react-icons/md";
-import {FiChevronDown } from "react-icons/fi";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  setSelectedImage,
+  loadComments,
+  saveImage,
+} from "../Store/pinterestSlice";
+import ImageDetail from "../Page/ImageDetails";
+import NavBar from "../Page/NavBar";
 import "./pinterest.css";
-import Fasearch from "../icon/Fasearch";
 
-const Pinterest = () => {
+const requireImage = (imageName) => {
+  try {
+    return require(`../assets/${imageName}`);
+  } catch (error) {
+    console.error(`Image not found: ${imageName}`);
+    return null;
+  }
+};
+
+const imageNames = [
+  "flower2.png",
+  "butterfly.png",
+  "butterfly2.png",
+  "quote.png",
+  "flower1.png",
+  "tree.png",
+  "bird painting.png",
+  "Leaves.png",
+  "painting.png",
+  "doodles.png",
+  "flower.png",
+  "Lady painting.png",
+  "quote 2.png",
+  "flower3.png",
+];
+
+const images = imageNames.map((name) => ({
+  src: requireImage(name),
+  alt: name.replace(/\.png$/, "").replace(/_/g, " "),
+}));
+
+function Pinterest() {
+  const dispatch = useDispatch();
+  const { selectedImage, comments, newComment, savedImages, searchTerm } =
+    useSelector((state) => state.pinterest);
+
+  useEffect(() => {
+    const savedComments = JSON.parse(localStorage.getItem("comments"));
+    if (savedComments) {
+      dispatch(loadComments(savedComments));
+    }
+  }, [dispatch]);
+
+  const handleImageClick = (image) => {
+    dispatch(setSelectedImage(image));
+  };
+
+  const handleSaveImage = (image, e, setButtonText) => {
+    e.stopPropagation();
+    if (!savedImages.find((img) => img.src === image.src)) {
+      setButtonText("Saving...");
+      setTimeout(() => {
+        dispatch(saveImage(image));
+        setButtonText("Saved");
+      }, 1000);
+    }
+  };
+
+  const filteredImages = images.filter((image) =>
+    image.alt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <>
-      <nav>
-        <img className="logo" src="./pinterest.png" alt="Pinterest" />
-        <ul>
-          <li className="active">Home</li>
-          <li>Explore</li>
-          <li>Create</li>
-        </ul>
-        <div className="search-container">
-          <Fasearch className="search-icon" />
-          <input className="search-bar" type="text" placeholder="Search" />
-        </div>
-        <div className="icons">
-          <FaBell />
-          <BiSolidMessageRoundedDots />
-          <FiChevronDown />
-        </div>
-      </nav>
-
+      <NavBar />
       <main>
+        {filteredImages.length === 0 && searchTerm && (
+          <p className="no-img-msg">No images match your search.</p>
+        )}
+
         <div className="grid-container">
-          <div className="grid-item">
-            <img src="./picture.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
+          {filteredImages.map((image, index) => (
+            <div
+              className="grid-item"
+              key={index}
+              onClick={() => handleImageClick(image)}
+            >
+              <img src={image.src} alt={image.alt} />
+              <div className="overlay">
+                <MdOutlineFileUpload className="upload-icon" />
+                <ButtonWithState
+                  image={image}
+                  onSaveImage={handleSaveImage}
+                  isSaved={!!savedImages.find((img) => img.src === image.src)}
+                />
+              </div>
             </div>
-          </div>
-          <div className="grid-item">
-            <img src="./picture2.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./butterfly.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./picture2.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./tree.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./picture.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./doodles.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./picture.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./picture2.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
-          <div className="grid-item">
-            <img src="./butterfly.png" alt="Sample" />
-            <div className="overlay">
-              <MdOutlineFileUpload className="upload-icon" />
-              <button className="save-button">Save</button>
-            </div>
-          </div>
+          ))}
         </div>
+
+        {selectedImage && (
+          <ImageDetail
+            selectedImage={selectedImage}
+            comments={comments}
+            newComment={newComment}
+          />
+        )}
       </main>
     </>
   );
-};
+}
+
+function ButtonWithState({ image, onSaveImage, isSaved }) {
+  const [buttonText, setButtonText] = useState(isSaved ? "Saved" : "Save");
+
+  return (
+    <button
+      className="save-button"
+      onClick={(e) => onSaveImage(image, e, setButtonText)}
+      disabled={buttonText === "Saving" || buttonText === "Saved"}
+    >
+      {buttonText}
+    </button>
+  );
+}
 
 export default Pinterest;
-
